@@ -1,0 +1,118 @@
+///usr/bin/env jbang "$0" "$@" ; exit $?
+// //DEPS <dependency1> <dependency2>
+//DEPS com.github.kwhat:jnativehook:2.2.2
+
+import static java.lang.System.*;
+import java.awt.Desktop;
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Optional;
+import java.util.stream.Stream;
+import com.github.kwhat.jnativehook.GlobalScreen;
+import com.github.kwhat.jnativehook.NativeHookException;
+import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent;
+import com.github.kwhat.jnativehook.keyboard.NativeKeyListener;
+
+import static java.util.stream.Collectors.toSet;
+
+public class I3Copy {
+
+    public static void main(String... args) throws IOException {
+        out.println("Hello World");
+		try {
+			GlobalScreen.registerNativeHook();
+		}
+		catch (NativeHookException ex) {
+			System.err.println("There was a problem registering the native hook.");
+			System.err.println(ex.getMessage());
+
+			System.exit(1);
+		}
+
+		GlobalScreen.addNativeKeyListener(new GlobalKeyListenerExample());
+    }
+}
+
+class GlobalKeyListenerExample implements NativeKeyListener {
+
+    // Ctrl = 29
+    // Shift = 42
+    private Set<Integer> pressedCharacters = new HashSet<>();
+
+	public void nativeKeyPressed(NativeKeyEvent e) {
+	    System.out.println("KeyCode Pressed: " + e.getKeyCode());
+		System.out.println("Key Pressed: " + NativeKeyEvent.getKeyText(e.getKeyCode()));
+
+		pressedCharacters.add(e.getKeyCode());
+
+        System.out.println(this.pressedCharacters);
+	    // If we have seen three characters already, then clear it.
+		if (pressedCharacters.size() == 3) {
+            Optional<Macros> optionalMacro = Macros.findMacroOptional(this.pressedCharacters);
+            optionalMacro.ifPresent(m -> openApplication(m.getApplication()));
+		    pressedCharacters.clear();
+		}
+
+		if (e.getKeyCode() == NativeKeyEvent.VC_ESCAPE) {
+            		try {
+                		GlobalScreen.unregisterNativeHook();
+            		} catch (NativeHookException nativeHookException) {
+                		nativeHookException.printStackTrace();
+            		}
+        	}
+	}
+
+	public void nativeKeyReleased(NativeKeyEvent e) {
+	    System.out.println(e.getKeyCode());
+		System.out.println("Key Released: " + NativeKeyEvent.getKeyText(e.getKeyCode()));
+		pressedCharacters.remove(e.getKeyCode());
+        System.out.println(this.pressedCharacters);
+	}
+
+	public void nativeKeyTyped(NativeKeyEvent e) {
+	    System.out.println("Key Code Typed: " + e.getKeyCode());
+		System.out.println("Key Typed: " + e.getKeyText(e.getKeyCode()));
+	}
+
+	public void openApplication(File file) {
+	    try {
+	        Desktop.getDesktop().open(file);
+	    }
+	    catch (IOException ioException) {
+	        System.exit(1);
+	    }
+	}
+}
+
+enum Macros {
+    ARC(Stream.of(29, 42,30).collect(toSet()) , "/Applications/Arc.app"),
+    IDEA(Stream.of(29, 42,45).collect(toSet()), "/Applications/IntelliJ IDEA.app"),
+    TERMINAL(Stream.of(29, 42,20).collect(toSet()), "/Applications/iTerm.app");
+
+    private Set<Integer> keyCodeSequence;
+    private File application;
+
+    private Macros(Set<Integer> keyCodeSequence, String applicationPath) {
+        this.keyCodeSequence = keyCodeSequence;
+        this.application = new File(applicationPath);
+    }
+
+    public Set<Integer> getKeyCodeSequence() {
+        return this.keyCodeSequence;
+    }
+
+    public File getApplication() {
+        return this.application;
+    }
+
+    public static Optional<Macros> findMacroOptional(Set<Integer> pressedKeyCodes) {
+        // for (Macros macro : values()) {
+        //     System.out.println(macro.getKeyCodeSequence().equals(pressedKeyCodes));
+        // }
+        // return Optional.empty();
+        return Arrays.stream(values()).filter(s -> s.getKeyCodeSequence().equals(pressedKeyCodes)).findFirst();
+    }
+}
