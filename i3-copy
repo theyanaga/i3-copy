@@ -21,7 +21,6 @@ import static java.util.stream.Collectors.toSet;
 public class I3Copy {
 
     public static void main(String... args) throws IOException {
-        out.println("Hello World");
 		try {
 			GlobalScreen.registerNativeHook();
 		}
@@ -38,17 +37,12 @@ public class I3Copy {
 
 class GlobalKeyListenerExample implements NativeKeyListener {
 
-    // Ctrl = 29
-    // Shift = 42
     private Set<Integer> pressedCharacters = new HashSet<>();
 
 	public void nativeKeyPressed(NativeKeyEvent e) {
-	    System.out.println("KeyCode Pressed: " + e.getKeyCode());
-		System.out.println("Key Pressed: " + NativeKeyEvent.getKeyText(e.getKeyCode()));
 
 		pressedCharacters.add(e.getKeyCode());
 
-        System.out.println(this.pressedCharacters);
 	    // If we have seen three characters already, then clear it.
 		if (pressedCharacters.size() == 3) {
             Optional<Macros> optionalMacro = Macros.findMacroOptional(this.pressedCharacters);
@@ -66,15 +60,10 @@ class GlobalKeyListenerExample implements NativeKeyListener {
 	}
 
 	public void nativeKeyReleased(NativeKeyEvent e) {
-	    System.out.println(e.getKeyCode());
-		System.out.println("Key Released: " + NativeKeyEvent.getKeyText(e.getKeyCode()));
 		pressedCharacters.remove(e.getKeyCode());
-        System.out.println(this.pressedCharacters);
 	}
 
 	public void nativeKeyTyped(NativeKeyEvent e) {
-	    System.out.println("Key Code Typed: " + e.getKeyCode());
-		System.out.println("Key Typed: " + e.getKeyText(e.getKeyCode()));
 	}
 
 	public void openApplication(File file) {
@@ -88,6 +77,8 @@ class GlobalKeyListenerExample implements NativeKeyListener {
 }
 
 enum Macros {
+    // Ctrl = 29
+    // Shift = 42
     ARC(Stream.of(29, 42,30).collect(toSet()) , "/Applications/Arc.app"),
     IDEA(Stream.of(29, 42,45).collect(toSet()), "/Applications/IntelliJ IDEA.app"),
     TERMINAL(Stream.of(29, 42,20).collect(toSet()), "/Applications/iTerm.app");
@@ -109,10 +100,6 @@ enum Macros {
     }
 
     public static Optional<Macros> findMacroOptional(Set<Integer> pressedKeyCodes) {
-        // for (Macros macro : values()) {
-        //     System.out.println(macro.getKeyCodeSequence().equals(pressedKeyCodes));
-        // }
-        // return Optional.empty();
         return Arrays.stream(values()).filter(s -> s.getKeyCodeSequence().equals(pressedKeyCodes)).findFirst();
     }
 }
